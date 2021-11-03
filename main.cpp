@@ -40,9 +40,9 @@ int RainbowDecoder(const std::string& encryptedStr) {
 				std::string hashStr = line.substr(hash_start + 1, hash_end - hash_start - 1);
 				
 				// то же самое
-        		auto original_start = line.find('"', hash_end + 1);
-        		auto original_end = line.find('"', original_start + 1);
-        		std::string original = line.substr(original_start + 1, original_end - original_start - 1);
+				auto original_start = line.find('"', hash_end + 1);
+				auto original_end = line.find('"', original_start + 1);
+				std::string original = line.substr(original_start + 1, original_end - original_start - 1);
 
 				if (encryptedStr == hashStr) {
 					std::cout << "Found original" << original << std::endl;
