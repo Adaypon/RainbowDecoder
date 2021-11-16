@@ -1,70 +1,99 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <vector>
 #include <string>
 
-const int numOfFiles = 12; // количество таблиц
+const int numOfFiles = 12; // number of rainbow tables
 
 int RainbowDecoder(const std::string& encryptedStr) {
+	bool foundFlag = false;
 	std::string line;
 	std::ifstream fin;
 	std::string fileName = "./Audero-MD5-Rainbow-Table/md5_rainbow_table_part_";
 	//./Audero-MD5-Rainbow-Table/md5_rainbow_table_part_1.csv
 
-	for (size_t i = 1; i <= numOfFiles; ++i) {
-		int rows = 0;
-		fin.open(fileName + std::to_string(i) + ".csv");
-		if (fin.is_open()) {
-			std::cout << "\tSearching in " << i << " table" << std::endl;
-			/*
-			
-			// подсчитать количество строк
-			while (getline(fin, line, '\n')) {
-				++rows;
-			}
+	std::string firstHash;
+	std::string lastHash;
+	int firstFileNum = 1;
+	int lastFileNum = numOfFiles;
 
-			// вернуться назад в поток
-			fin.clear();
-			fin.seekg(0, std::ios_base::beg);
+	// checking that hash can be found in these files
 
-			// TODO бинарный поиск
-			// ...
+	fin.open(fileName + std::to_string(firstFileNum) + ".csv");
+	getline(fin, line);
+	firstHash = line.substr(1, 32);
+	fin.close();
 
-			*/
+	fin.open(fileName + std::to_string(lastFileNum) + ".csv");
+	while (getline(fin, line, '\n')) {
+		lastHash = line.substr(1, 32);
+	}
+	fin.close();
+
+	if (encryptedStr >= firstHash && encryptedStr <= lastHash) {
+		// continue search
+		std::cout << "Searching..." << std::endl;
 		
-			// линейный поиск
-			while (getline(fin, line, '\n')) {
-				auto hash_start = line.find('"'); // ищем первую кавычку - начало хэша
-				auto hash_end = line.find('"', hash_start + 1); // ищем вторую кавычку - конец хэша - отсчитвая с первой кавычки
-				std::string hashStr = line.substr(hash_start + 1, hash_end - hash_start - 1);
-				
-				// то же самое
-				auto original_start = line.find('"', hash_end + 1);
-				auto original_end = line.find('"', original_start + 1);
-				std::string original = line.substr(original_start + 1, original_end - original_start - 1);
+		int middFileNum;
+		std::string middNextFirstHash; // first hash of next to midd file
+		std::string middLastHash; // last hash of midd file
+		while (firstFileNum < lastFileNum) {
+			middFileNum = (firstFileNum + lastFileNum) / 2;
 
-				if (encryptedStr == hashStr) {
-					std::cout << "Found original" << original << std::endl;
-					fin.close();
-					return 0;
-				}
+			fin.open(fileName + std::to_string(middFileNum) + ".csv");
+			while (getline(fin, line, '\n')) {
+				middLastHash = line.substr(1, 32);
 			}
-			// в этом файле не нашли, идем дальше
+			fin.close();
+
+			fin.open(fileName + std::to_string(middFileNum + 1) + ".csv");
+			getline(fin, line);
+			middNextFirstHash = line.substr(1, 32);
+			fin.close();
+
+			// 1st group (from firstFileNum to middFileNum)
+			if (encryptedStr >= firstHash && encryptedStr <= middLastHash) {
+				lastFileNum = middFileNum;
+				lastHash = middLastHash;
+			}
+			// 2nd group (from middFileNum + 1 to lastFileNum)
+			else {
+				firstFileNum = middFileNum + 1;
+				firstHash = middNextFirstHash;
+			}
 		}
-		else {
-			std::cerr << "Can't open file" << std::endl;
-			return -1;
+
+		fin.open(fileName + std::to_string(lastFileNum) + ".csv");
+		while (getline(fin, line, '\n')) {
+			if (encryptedStr == line.substr(1, 32)) { // can't get bugs if you hardcode substring positions ( ͡° ͜ʖ ͡°)
+				// 35 is the pos first " of original; the original itself starts at 36 pos
+				size_t original_end = line.find('"', 36);
+				std::string original = line.substr(36, original_end - 35 - 1);
+				foundFlag = true;
+				std::cout << "Found original: " << original << std::endl;
+				break;
+			}
 		}
 		fin.close();
+		if (foundFlag) {
+			return 0;
+		}
+		else {
+			std::cout << "Original not found" << std::endl;
+			return 1;
+		}
+		
 	}
-	std::cout << "Original not found" << std::endl;
-	return 1;
+	else {
+		std::cout << "Input hash does not belong to rainbow table scope" << std::endl;
+		return 2;
+	}
 }
 
-
-int main() {
-	std::cout << "Please wait, since this may take a while..." << std::endl;
-	RainbowDecoder("17189d9438d9749039c0de1045af1732");
-	return 0;
+int main(int argc, char** argv) {
+	if (argc != 2) {
+		std::cout << "Invalid num of arguments" << std::endl;
+		return -1;
+	}
+	return RainbowDecoder(argv[1]);
 }
