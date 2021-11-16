@@ -82,7 +82,6 @@ int RainbowDecoder(const std::string& encryptedStr) {
 			std::cout << "Original not found" << std::endl;
 			return 1;
 		}
-		
 	}
 	else {
 		std::cout << "Input hash does not belong to rainbow table scope" << std::endl;
